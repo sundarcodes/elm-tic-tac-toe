@@ -1,0 +1,23 @@
+.container {
+  display: flex;
+  justify-content: center;
+}
+#grid {
+  margin-top: 20px;
+  height: 150px;
+  width: 150px;
+  /* border: solid 2px greenyellow */
+}
+.place-holder {
+  height: 50px;
+  width: 50px;
+  border: solid 1px orchid;
+}
+
+.green {
+    background-color: green;
+}
+
+.orange {
+    background-color: orchid;
+}
