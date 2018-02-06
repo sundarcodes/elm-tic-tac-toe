@@ -1,18 +1,18 @@
 module State exposing (..)
 
-import Array exposing (..)
+import Dict exposing (..)
 
 
 type alias Box =
-    { mark : Color
+    { mark : MarkerType
     , pos : ( Int, Int )
     }
 
 
-type Color
-    = Green
-    | Orange
-    | White
+type MarkerType
+    = Cross
+    | Circle
+    | None
 
 
 type Msg
@@ -21,130 +21,195 @@ type Msg
     | Reset
 
 
+type GameState
+    = NotStarted
+    | InProgress
+    | Drawn
+    | Won MarkerType
+
+
+type alias Board =
+    Dict ( Int, Int ) Box
+
+
 type alias Model =
-    { boxes : Array (Array Box), isGameOver : Bool, nextMove : Color }
+    { boxes : Board, gameState : GameState, nextTurn : MarkerType }
+
+
+flatten2D : List (List a) -> List a
+flatten2D list =
+    List.foldr (++) [] list
+
+
+buildInitialBoard : Board
+buildInitialBoard =
+    Dict.fromList
+        ((List.map
+            (\row ->
+                (List.map
+                    (\col ->
+                        ( ( row, col )
+                        , { mark = None
+                          , pos = ( row, col )
+                          }
+                        )
+                    )
+                    (List.range
+                        0
+                        2
+                    )
+                )
+            )
+            (List.range
+                0
+                2
+            )
+         )
+            |> flatten2D
+        )
 
 
 initialModel : Model
 initialModel =
-    { boxes =
-        Array.fromList
-            (List.map
-                (\row ->
-                    Array.fromList
-                        ((List.map
-                            (\col ->
-                                { mark = White
-                                , pos = ( row, col )
-                                }
-                            )
-                            (List.range 0 2)
-                         )
-                        )
-                )
-                (List.range 0 2)
-            )
-    , isGameOver = False
-    , nextMove = Orange
+    { boxes = buildInitialBoard
+    , gameState = NotStarted
+    , nextTurn = Cross
     }
 
 
-markBoxWithColor : Color -> Array (Array Box) -> ( Int, Int ) -> Array (Array Box)
-markBoxWithColor color boxes ( x, y ) =
-    let
-        row =
-            case Array.get x boxes of
-                Nothing ->
-                    fromList []
+markBoxWithMarker : MarkerType -> Board -> ( Int, Int ) -> Board
+markBoxWithMarker marker board ( x, y ) =
+    Dict.update ( x, y )
+        (\val ->
+            let
+                res =
+                    case val of
+                        Nothing ->
+                            { mark = None, pos = ( -1, -1 ) }
 
-                Just val ->
-                    val
-
-        box =
-            case Array.get y row of
-                Nothing ->
-                    { mark = White
-                    , pos = ( x, y )
-                    }
-
-                Just val ->
-                    val
-    in
-        Array.set x (Array.set y { mark = color, pos = ( x, y ) } row) boxes
+                        Just val ->
+                            { val | mark = marker }
+            in
+                Just res
+        )
+        board
 
 
-deduceNextMove : Color -> Color
-deduceNextMove color =
-    if (color == Orange) then
-        Green
+findNextTurn : MarkerType -> MarkerType
+findNextTurn turn =
+    if (turn == Cross) then
+        Circle
     else
-        Orange
+        Cross
 
 
-isGameOver : Array (Array Box) -> Bool
-isGameOver arr =
+isGameOver : Board -> MarkerType -> GameState
+isGameOver board currentTurn =
     -- First check the rows
-    -- Check the coloums
-    -- Check the left diagonal
-    -- Check the right diagonal
-    False
+    if isAllRowsMarked board then
+        Won currentTurn
+    else
+        InProgress
 
 
-isAllBoxSameColor : Array Box -> Bool
+
+-- Check the coloums
+-- Check the left diagonal
+-- Check the right diagonal
+
+
+isAllRowsMarked : Board -> Bool
+isAllRowsMarked board =
+    let
+        rowResults =
+            List.map (\rowNum -> isAllBoxesinRowMarked board rowNum) (List.range 0 2)
+    in
+        List.member True rowResults
+
+
+isAllBoxesinRowMarked : Board -> Int -> Bool
+isAllBoxesinRowMarked board rowNum =
+    Dict.filter (\( x, y ) val -> x == rowNum) board
+        |> Dict.values
+        |> isAllBoxSameColor
+
+
+isAllBoxSameColor : List Box -> Bool
 isAllBoxSameColor arr =
     let
         totalLength =
-            Array.length arr
+            List.length arr
 
-        numOfOranges =
-            Array.length (Array.filter (\box -> box.mark == Orange) arr)
+        numOfCircles =
+            List.length (List.filter (\box -> box.mark == Circle) arr)
 
-        numOfGreen =
-            Array.length (Array.filter (\box -> box.mark == Green) arr)
+        numOfCrosses =
+            List.length (List.filter (\box -> box.mark == Cross) arr)
     in
-        if (totalLength == numOfOranges) || (totalLength == numOfGreen) then
+        if (totalLength == numOfCircles) || (totalLength == numOfCrosses) then
             True
         else
             False
 
 
-isMoveValid : Array (Array Box) -> ( Int, Int ) -> Bool
-isMoveValid boxes ( x, y ) =
+isMoveValid : Board -> ( Int, Int ) -> Bool
+isMoveValid board ( x, y ) =
     let
-        row =
-            case Array.get x boxes of
-                Nothing ->
-                    fromList []
-
-                Just val ->
-                    val
-
         box =
-            case Array.get y row of
-                Nothing ->
-                    { mark = White
-                    , pos = ( x, y )
-                    }
-
-                Just val ->
-                    val
+            Dict.get ( x, y ) board
     in
-        if box.mark /= White then
+        case box of
+            Nothing ->
+                False
+
+            Just val ->
+                if (val.mark == None) then
+                    True
+                else
+                    False
+
+
+isGameDone : GameState -> Bool
+isGameDone state =
+    case state of
+        InProgress ->
             False
-        else
+
+        Won player ->
             True
+
+        Drawn ->
+            True
+
+        NotStarted ->
+            False
+
+
+updateMarker : Model -> ( Int, Int ) -> Model
+updateMarker model pos =
+    { model
+        | nextTurn = findNextTurn model.nextTurn
+        , boxes = markBoxWithMarker model.nextTurn model.boxes pos
+    }
+
+
+updateGameState : Model -> Model
+updateGameState model =
+    { model
+        | gameState = isGameOver model.boxes model.nextTurn
+    }
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         Mark ( x, y ) ->
-            if isMoveValid model.boxes ( x, y ) then
-                { model
-                    | nextMove = deduceNextMove model.nextMove
-                    , boxes = markBoxWithColor model.nextMove model.boxes ( x, y )
-                    , isGameOver = isGameOver model.boxes
-                }
+            if isMoveValid model.boxes ( x, y ) && (not (isGameDone model.gameState)) then
+                Debug.log (toString model)
+                    updateMarker
+                    model
+                    ( x, y )
+                    |> updateGameState
             else
                 model
 

@@ -11,13 +11,8 @@
 .place-holder {
   height: 50px;
   width: 50px;
-  border: solid 1px orchid;
-}
-
-.green {
-    background-color: green;
-}
-
-.orange {
-    background-color: orchid;
+  border: solid 1px #abb0b5;
+  font-size: 30px;
+  text-align: center;
+  border-radius: 5px;
 }
