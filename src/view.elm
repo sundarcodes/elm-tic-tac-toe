@@ -42,15 +42,27 @@ viewRow rowNum board =
 viewButtons : Html Msg
 viewButtons =
     div [ class "button-group" ]
-        [ button [ (onClick State.Undo) ] [ text "Undo" ] ]
+        [ button [ class "btn", (onClick State.Undo) ] [ text "Undo" ]
+        , button [ class "btn", (onClick State.Redo) ] [ text "Redo" ]
+        ]
+
+
+viewInfo : Model -> Html Msg
+viewInfo model =
+    div [ class "information-board" ]
+        [ div [] [ text ("Game Status: " ++ (toString model.gameState)) ]
+        , div [] [ text ("Next Turn: " ++ (toString model.nextTurn)) ]
+        ]
 
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
-        [ div [ id "grid" ]
+    div [ class "container-board" ]
+        [ viewInfo model
+        , div [ class "marker-board" ]
             (List.map
                 (\rowNum -> viewRow rowNum model.boxes)
                 (List.range 0 2)
             )
+        , viewButtons
         ]

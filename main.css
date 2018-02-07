@@ -1,13 +1,11 @@
-.container {
+.marker-board {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  height: 70vh;
 }
-#grid {
-  margin-top: 20px;
-  height: 150px;
-  width: 150px;
-  /* border: solid 2px greenyellow */
-}
+
 .place-holder {
   height: 50px;
   width: 50px;
@@ -15,4 +13,18 @@
   font-size: 30px;
   text-align: center;
   border-radius: 5px;
+}
+
+.information-board {
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+}
+.btn {
+  border: solid 1px;
+  margin-right: 5px;
 }

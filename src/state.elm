@@ -17,6 +17,7 @@ type MarkerType
 
 type Msg
     = Undo
+    | Redo
     | Mark ( Int, Int )
     | Reset
 
@@ -107,7 +108,7 @@ isGameOver : Board -> MarkerType -> GameState
 isGameOver board currentTurn =
     -- First check the rows
     if isAllRowsMarked board then
-        Won currentTurn
+        Won (findNextTurn currentTurn)
     else
         InProgress
 
@@ -214,6 +215,9 @@ update msg model =
                 model
 
         Undo ->
+            model
+
+        Redo ->
             model
 
         Reset ->
