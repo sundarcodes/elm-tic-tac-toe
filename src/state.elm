@@ -1,6 +1,7 @@
 module State exposing (..)
 
 import Dict exposing (..)
+import Array exposing (Array)
 
 
 type alias Box =
@@ -22,7 +23,7 @@ type Msg
     | Reset
 
 
-type GameState
+type GameStatus
     = NotStarted
     | InProgress
     | Drawn
@@ -33,8 +34,18 @@ type alias Board =
     Dict ( Int, Int ) Box
 
 
+type alias GameState =
+    { boxes : Board
+    , gameStatus : GameStatus
+    , nextTurn : MarkerType
+    }
+
+
 type alias Model =
-    { boxes : Board, gameState : GameState, nextTurn : MarkerType }
+    { gameState : GameState
+    , previousStates : Array GameState
+    , nextStates : Array GameState
+    }
 
 
 flatten2D : List (List a) -> List a
@@ -70,11 +81,19 @@ buildInitialBoard =
         )
 
 
+initializeGameState : GameState
+initializeGameState =
+    { boxes = buildInitialBoard
+    , gameStatus = NotStarted
+    , nextTurn = Cross
+    }
+
+
 initialModel : Model
 initialModel =
-    { boxes = buildInitialBoard
-    , gameState = NotStarted
-    , nextTurn = Cross
+    { gameState = initializeGameState
+    , previousStates = Array.fromList []
+    , nextStates = Array.fromList []
     }
 
 
@@ -104,7 +123,7 @@ findNextTurn turn =
         Cross
 
 
-isGameOver : Board -> MarkerType -> GameState
+isGameOver : Board -> MarkerType -> GameStatus
 isGameOver board currentTurn =
     -- First check the rows
     if isAllRowsMarked board then
@@ -170,7 +189,7 @@ isMoveValid board ( x, y ) =
                     False
 
 
-isGameDone : GameState -> Bool
+isGameDone : GameStatus -> Bool
 isGameDone state =
     case state of
         InProgress ->
@@ -186,18 +205,39 @@ isGameDone state =
             False
 
 
-updateMarker : Model -> ( Int, Int ) -> Model
-updateMarker model pos =
+updateMarkers : GameState -> ( Int, Int ) -> GameState
+updateMarkers gameState pos =
+    { gameState
+        | nextTurn = findNextTurn gameState.nextTurn
+        , boxes = markBoxWithMarker gameState.nextTurn gameState.boxes pos
+    }
+
+
+updateMarkersState : ( Int, Int ) -> Model -> Model
+updateMarkersState pos model =
     { model
-        | nextTurn = findNextTurn model.nextTurn
-        , boxes = markBoxWithMarker model.nextTurn model.boxes pos
+        | gameState = updateMarkers model.gameState pos
     }
 
 
 updateGameState : Model -> Model
 updateGameState model =
     { model
-        | gameState = isGameOver model.boxes model.nextTurn
+        | gameState = updateGameStatus model.gameState
+    }
+
+
+updateGameStatus : GameState -> GameState
+updateGameStatus gameState =
+    { gameState
+        | gameStatus = isGameOver gameState.boxes gameState.nextTurn
+    }
+
+
+pushGameStateToUndoList : Model -> Model
+pushGameStateToUndoList model =
+    { model
+        | previousStates = (Array.push model.gameState model.previousStates)
     }
 
 
@@ -205,20 +245,35 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         Mark ( x, y ) ->
-            if isMoveValid model.boxes ( x, y ) && (not (isGameDone model.gameState)) then
-                Debug.log (toString model)
-                    updateMarker
-                    model
-                    ( x, y )
+            if isMoveValid model.gameState.boxes ( x, y ) && (not (isGameDone model.gameState.gameStatus)) then
+                -- Debug.log (toString model)
+                pushGameStateToUndoList model
+                    |> updateMarkersState ( x, y )
                     |> updateGameState
             else
                 model
 
         Undo ->
-            model
+            let
+                arrLength =
+                    Array.length model.previousStates
+
+                previousGameState =
+                    case Array.get (arrLength - 1) model.previousStates of
+                        Nothing ->
+                            model.gameState
+
+                        Just val ->
+                            val
+            in
+                { model
+                    | gameState = previousGameState
+                    , previousStates = Array.slice 0 -1 model.previousStates
+                    , nextStates = Array.push previousGameState model.nextStates
+                }
 
         Redo ->
             model
 
         Reset ->
-            model
+            initialModel

@@ -24,7 +24,7 @@ placeHolder box =
                 ""
     in
         div
-            [ class ("col-md-4 place-holder")
+            [ class ("place-holder")
             , id (toString (Tuple.first box.pos) ++ "-" ++ toString (Tuple.second box.pos))
             , onClick (State.Mark box.pos)
             ]
@@ -43,15 +43,15 @@ viewButtons : Html Msg
 viewButtons =
     div [ class "button-group" ]
         [ button [ class "btn", (onClick State.Undo) ] [ text "Undo" ]
-        , button [ class "btn", (onClick State.Redo) ] [ text "Redo" ]
+        , button [ class "btn", (onClick State.Reset) ] [ text "Reset" ]
         ]
 
 
 viewInfo : Model -> Html Msg
 viewInfo model =
     div [ class "information-board" ]
-        [ div [] [ text ("Game Status: " ++ (toString model.gameState)) ]
-        , div [] [ text ("Next Turn: " ++ (toString model.nextTurn)) ]
+        [ div [] [ text ("Game Status: " ++ (toString model.gameState.gameStatus)) ]
+        , div [] [ text ("Next Turn: " ++ (toString model.gameState.nextTurn)) ]
         ]
 
 
@@ -61,7 +61,7 @@ view model =
         [ viewInfo model
         , div [ class "marker-board" ]
             (List.map
-                (\rowNum -> viewRow rowNum model.boxes)
+                (\rowNum -> viewRow rowNum model.gameState.boxes)
                 (List.range 0 2)
             )
         , viewButtons
