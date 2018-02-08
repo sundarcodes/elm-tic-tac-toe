@@ -34,6 +34,11 @@ type alias Board =
     Dict ( Int, Int ) Box
 
 
+type RowColIndicator
+    = Row
+    | Column
+
+
 type alias GameState =
     { boxes : Board
     , gameStatus : GameStatus
@@ -126,32 +131,122 @@ findNextTurn turn =
 isGameOver : Board -> MarkerType -> GameStatus
 isGameOver board currentTurn =
     -- First check the rows
-    if isAllRowsMarked board then
+    if isAllRowsMarkedInSameColor board then
         Won (findNextTurn currentTurn)
+        -- Check the coloums
+    else if isAllColumnsMarkedInSameColor board then
+        Won (findNextTurn currentTurn)
+    else if isDiagonalsMarkedInSameColor board then
+        Won (findNextTurn currentTurn)
+    else if isMatchDrawn board then
+        Drawn
     else
         InProgress
 
 
 
--- Check the coloums
 -- Check the left diagonal
 -- Check the right diagonal
 
 
-isAllRowsMarked : Board -> Bool
-isAllRowsMarked board =
+isMatchDrawn : Board -> Bool
+isMatchDrawn board =
     let
-        rowResults =
-            List.map (\rowNum -> isAllBoxesinRowMarked board rowNum) (List.range 0 2)
+        markedBoxesLength =
+            List.length
+                (Dict.values board
+                    |> List.filter (\box -> box.mark /= None)
+                )
     in
-        List.member True rowResults
+        markedBoxesLength == Dict.size board
 
 
-isAllBoxesinRowMarked : Board -> Int -> Bool
-isAllBoxesinRowMarked board rowNum =
-    Dict.filter (\( x, y ) val -> x == rowNum) board
+isDiagonalsMarkedInSameColor : Board -> Bool
+isDiagonalsMarkedInSameColor board =
+    if (isAllBoxSameColor (fetchLeftDiagonalBoxes board)) then
+        True
+    else if (isAllBoxSameColor (fetchRightDiagonalBoxes board)) then
+        True
+    else
+        False
+
+
+fetchLeftDiagonalBoxes : Board -> List Box
+fetchLeftDiagonalBoxes board =
+    Dict.filter (\( x, y ) val -> List.member ( x, y ) [ ( 0, 0 ), ( 1, 1 ), ( 2, 2 ) ]) board
         |> Dict.values
-        |> isAllBoxSameColor
+
+
+fetchRightDiagonalBoxes : Board -> List Box
+fetchRightDiagonalBoxes board =
+    Dict.filter (\( x, y ) val -> List.member ( x, y ) [ ( 0, 2 ), ( 1, 1 ), ( 2, 0 ) ]) board
+        |> Dict.values
+
+
+isAllRowsMarkedInSameColor : Board -> Bool
+isAllRowsMarkedInSameColor board =
+    if (isAllBoxSameColor (fetchAllBoxesInFirstRow board)) then
+        True
+    else if (isAllBoxSameColor (fetchAllBoxesInSecondRow board)) then
+        True
+    else if (isAllBoxSameColor (fetchAllBoxesInThirdRow board)) then
+        True
+    else
+        False
+
+
+isAllColumnsMarkedInSameColor : Board -> Bool
+isAllColumnsMarkedInSameColor board =
+    if (isAllBoxSameColor (fetchAllBoxesInFirstColumn board)) then
+        True
+    else if (isAllBoxSameColor (fetchAllBoxesInSecondColumn board)) then
+        True
+    else if (isAllBoxSameColor (fetchAllBoxesInThirdColumn board)) then
+        True
+    else
+        False
+
+
+fetchAllBoxesInRow : Int -> Board -> List Box
+fetchAllBoxesInRow row board =
+    Dict.filter (\( x, y ) val -> x == row) board
+        |> Dict.values
+
+
+fetchAllBoxesInColumn : Int -> Board -> List Box
+fetchAllBoxesInColumn col board =
+    Dict.filter (\( x, y ) val -> y == col) board
+        |> Dict.values
+
+
+fetchAllBoxesInFirstColumn : Board -> List Box
+fetchAllBoxesInFirstColumn =
+    fetchAllBoxesInColumn 0
+
+
+fetchAllBoxesInSecondColumn : Board -> List Box
+fetchAllBoxesInSecondColumn =
+    fetchAllBoxesInColumn 1
+
+
+fetchAllBoxesInThirdColumn : Board -> List Box
+fetchAllBoxesInThirdColumn =
+    fetchAllBoxesInColumn 2
+
+
+fetchAllBoxesInFirstRow : Board -> List Box
+fetchAllBoxesInFirstRow =
+    fetchAllBoxesInRow 0
+
+
+fetchAllBoxesInSecondRow : Board -> List Box
+fetchAllBoxesInSecondRow =
+    fetchAllBoxesInRow 1
+
+
+fetchAllBoxesInThirdRow : Board -> List Box
+fetchAllBoxesInThirdRow =
+    fetchAllBoxesInRow 2
 
 
 isAllBoxSameColor : List Box -> Bool
@@ -246,7 +341,6 @@ update msg model =
     case msg of
         Mark ( x, y ) ->
             if isMoveValid model.gameState.boxes ( x, y ) && (not (isGameDone model.gameState.gameStatus)) then
-                -- Debug.log (toString model)
                 pushGameStateToUndoList model
                     |> updateMarkersState ( x, y )
                     |> updateGameState
