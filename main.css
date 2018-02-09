@@ -19,8 +19,8 @@ body {
 
 .place-holder {
   font-weight: 300;
-  height: 50px;
-  width: 50px;
+  height: 75px;
+  width: 75px;
   border: solid 1px #abb0b5;
   font-size: 30px;
   text-align: center;
@@ -33,6 +33,7 @@ body {
 .information-board {
   display: flex;
   justify-content: space-evenly;
+  margin-top: 5vh;
 }
 
 .button-group {
@@ -43,10 +44,23 @@ body {
   border: solid 1px;
   margin-right: 5px;
   border-radius: 5px;
-  height: 30px;
+  height: 35px;
   background-color: white;
 }
 
 .row {
   display: flex;
+}
+
+.game-status {
+  color: #e67e22;
+}
+
+.next-turn {
+  color: #2ecc71;
+}
+
+h1 {
+  text-align: center;
+  font-weight: 100;
 }

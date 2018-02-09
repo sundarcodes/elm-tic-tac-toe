@@ -1,8 +1,8 @@
 module View exposing (..)
 
-import Html exposing (Html, div, text, button)
+import Html exposing (Html, div, text, button, span, h1)
 import Html.Attributes exposing (class, id)
-import State exposing (Model, Box, Msg, MarkerType, Board)
+import State exposing (Model, Box, Msg, MarkerType, Board, GameStatus)
 import Dict exposing (..)
 import Html.Events exposing (onClick)
 
@@ -50,15 +50,28 @@ viewButtons =
 viewInfo : Model -> Html Msg
 viewInfo model =
     div [ class "information-board" ]
-        [ div [] [ text ("Game Status: " ++ (toString model.gameState.gameStatus)) ]
-        , div [] [ text ("Next Turn: " ++ (toString model.gameState.nextTurn)) ]
+        [ div []
+            [ text ("Game Status: ")
+            , span [ class "game-status" ] [ text (mapModelGameStatusToViewName model.gameState.gameStatus) ]
+            ]
+        , div []
+            [ text ("Next Turn: ")
+            , span [ class "next-turn" ] [ text (mapModelPlayerTypeToView model.gameState.nextTurn) ]
+            ]
         ]
+
+
+viewHeader : Html Msg
+viewHeader =
+    div []
+        [ h1 [] [ text "Elmy Tic Tac Toe" ] ]
 
 
 view : Model -> Html Msg
 view model =
     div [ class "container-board" ]
-        [ viewInfo model
+        [ viewHeader
+        , viewInfo model
         , div [ class "marker-board" ]
             (List.map
                 (\rowNum -> viewRow rowNum model.gameState.boxes)
@@ -66,3 +79,32 @@ view model =
             )
         , viewButtons
         ]
+
+
+mapModelGameStatusToViewName : State.GameStatus -> String
+mapModelGameStatusToViewName gameStatus =
+    case gameStatus of
+        State.NotStarted ->
+            "Not Started"
+
+        State.Drawn ->
+            "Match Drawn"
+
+        State.Won player ->
+            "Won by " ++ mapModelPlayerTypeToView player
+
+        State.InProgress ->
+            "Play in Progress"
+
+
+mapModelPlayerTypeToView : State.MarkerType -> String
+mapModelPlayerTypeToView playerType =
+    case playerType of
+        State.Circle ->
+            "O"
+
+        State.Cross ->
+            "X"
+
+        State.None ->
+            ""
